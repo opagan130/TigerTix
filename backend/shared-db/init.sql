@@ -9,3 +9,11 @@ CREATE TABLE IF NOT EXISTS events (
   available_tickets INTEGER NOT NULL CHECK(available_tickets >= 0),
   created_at TEXT DEFAULT (datetime('now'))
 );
+
+CREATE TABLE IF NOT EXISTS pending_bookings (
+  token      TEXT PRIMARY KEY,             
+  event_name TEXT NOT NULL,                 
+  tickets    INTEGER NOT NULL CHECK (tickets > 0),
+  raw_text   TEXT NOT NULL,
+  created_at TEXT DEFAULT (datetime('now'))
+);

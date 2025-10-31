@@ -27,6 +27,17 @@ function createEvent(event, cb) {
   });
 }
 
+/**
+ * 
+ * @param {int} eventId - number associated with event to delete 
+ * @param {Function} cb - Callback function (err, result).
+ * 
+ * @returns {void}
+ * 
+ * Side Effects: 
+ *   - Removes row from the `events` table. 
+ */
+
 function deleteEvent(eventId, cb) {
   const sql = 'DELETE FROM events WHERE id = ?';
   db.run(sql, [eventId], function (err) {

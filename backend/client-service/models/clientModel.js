@@ -19,6 +19,7 @@ function getAllEvents(cb) {
   db.all(sql, [], (err, rows) => cb(err, rows));
 }
 
+// TODO: update header to include new params
 /**
  * purchaseTicket
  * ------------------------------
@@ -37,7 +38,17 @@ function getAllEvents(cb) {
  *   - Success: { success: true }
  *   - Error: 'Sold out', 'Event not found', or database error.
  */
-function purchaseTicket(eventId, cb) {
+function purchaseTicket(eventId, qtyOrCb, possCb) {
+  
+  let qty = 1, cb = possCb;
+  if (typeof qtyOrCb === 'function') {
+    cb = qtyOrCb;
+  } else {
+    qty = parseInt(qtyOrCb, 10) || 1; 
+  }
+  if (!cb) cb = () => {};
+
+
   db.serialize(() => {
     db.run('BEGIN IMMEDIATE TRANSACTION', (err) => {
       if (err) return cb(err);
@@ -56,7 +67,7 @@ function purchaseTicket(eventId, cb) {
           return;
         }
 
-        db.run('UPDATE events SET available_tickets = available_tickets - 1 WHERE id = ?', [eventId], function(err3) {
+        db.run('UPDATE events SET available_tickets = available_tickets - ? WHERE id = ?', [qty, eventId], function(err3) {
           if (err3) {
             db.run('ROLLBACK', () => cb(err3));
             return;
@@ -71,4 +82,34 @@ function purchaseTicket(eventId, cb) {
   });
 }
 
-module.exports = { getAllEvents, purchaseTicket };
+//TODO: create proper header
+function savePendingBooking(token, event, tickets, raw, cb) {
+const sql = `
+INSERT INTO pending_bookings(token, event_name, tickets, raw_text)
+VALUES (?,?,?,?)
+`;
+db.run(sql, [token, event, tickets, raw], function (err) {
+    if (err) console.error("[savePendingBooking] insert failed:", err);
+    cb(err);
+  });
+}
+
+function getPendingBooking(token, cb) {
+db.get("SELECT * FROM pending_bookings WHERE token = ?", [token], cb);
+}
+
+function deletePendingBooking(token, cb) {
+db.run("DELETE FROM pending_bookings WHERE token = ?", [token], cb);
+}
+
+function getEventByName(name, cb) {
+db.get("SELECT * FROM events WHERE name = ?", [name], cb);
+}
+
+module.exports = { getAllEvents,
+purchaseTicket,
+savePendingBooking,
+getPendingBooking,
+deletePendingBooking,
+getEventByName
+};
