@@ -1,29 +1,17 @@
-import React, { useEffect, useState } from 'react';
-import './App.css';
+import React from 'react';
+import EventList from './components/eventList';
+
 function App() {
-  const [events, setEvents] = useState([]);
-useEffect(() => {
-  fetch('/api/events')
-    .then((res) => res.json())
-    .then((data) => setEvents(data))
-    .catch((err) => console.error(err));
-}, []);
-const buyTicket = (eventName) => {
-  alert(`Ticket purchased for: ${eventName}`);
-};
-return (
-  <div className="App">
-    <h1>Clemson Campus Events</h1>
-    <ul>
-      {events.map((event) => (
-        <li key={event.id}>
-          {event.name} - {event.date}{' '}
-          <button onClick={() => buyTicket(event.name)}>Buy
-Ticket</button>
-          </li>
-        ))}
-      </ul>
+  return (
+    <div className="container">
+      <h1>TigerTix </h1>
+      <p>Browse events and buy tickets.</p>
+      <EventList />
     </div>
   );
 }
+
 export default App;
+
+
+

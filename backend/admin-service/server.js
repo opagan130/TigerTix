@@ -1,9 +1,21 @@
+
 const express = require('express');
+const bodyParser = require('body-parser');
 const cors = require('cors');
+const adminRoutes = require('./routes/adminRoutes');
+const { initDb } = require('./setup');
+
 const app = express();
-const routes = require('./routes/routes');
 app.use(cors());
-app.use('/api', routes);
-const PORT = 5000;
-app.listen(PORT, () => console.log(`Server running at
-http://localhost:${PORT}`));
+app.use(bodyParser.json());
+
+// Initialize DB (creates database.sqlite and tables if missing)
+initDb();
+
+app.use('/api/admin', adminRoutes);
+
+// Basic health
+app.get('/health', (req, res) => res.json({ status: 'admin ok' }));
+
+const PORT = process.env.PORT || 5001;
+app.listen(PORT, () => console.log(`Admin service listening on ${PORT}`));

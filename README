@@ -1,0 +1,7 @@
+# TigerTix
+TigerTix is a ticket-management web application designed to simulate a real-world microservices architecture. 
+In Sprint 1, the monolithic starter app was refactored into two independents Node.js/Express microservices — Admin Service and Client Service — connected through a shared SQLite database, with a React.js frontend consuming live event data. The goal of this sprint was to demonstrate microservice separation, persistent data storage, frontend integration, basic accessibility, and safe concurrent ticket purchases. 
+
+## Prereqs
+- Node.js (>= 16)
+- npm
