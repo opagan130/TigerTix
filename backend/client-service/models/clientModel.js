@@ -117,7 +117,7 @@ db.run("DELETE FROM pending_bookings WHERE token = ?", [token], cb);
 }
 
 function getEventByName(name, cb) {
-db.get("SELECT * FROM events WHERE name = ?", [name], cb);
+db.get("SELECT * FROM events WHERE LOWER(name) = LOWER(?)", [name], cb);
 }
 
 module.exports = { getAllEvents,

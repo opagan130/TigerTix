@@ -172,15 +172,20 @@ function confirmBooking(req, res) {
   const token = req.body.token;
   const customer = req.body.customer || "Anonymous";
 
+  console.log("[confirmBooking] Received token:", token);
+
   clientModel.getPendingBooking(token, (err, pending) => {
+    console.log("[confirmBooking] Pending result:", pending);
     if (!pending)
       return res.status(400).json({ message: "Invalid or expired token" });
     
     clientModel.getEventByName(pending.event_name, (err2, event) => {
+      console.log("[confirmBooking] Event result:", event);
       if (!event)
         return res.status(400).json({ message: "Event not found" });
 
       clientModel.purchaseTicket(event.id, pending.tickets, (err3, result) => {
+        console.log("[confirmBooking] Purchase result:", result, "Error:", err3);
         if (err3) {
           return res.status(400).json({ error: err3.message });
         }
