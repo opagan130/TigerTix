@@ -94,6 +94,20 @@ db.run(sql, [token, event, tickets, raw], function (err) {
   });
 }
 
+
+function getLastPendingBooking(cb) {
+  db.get(`
+    SELECT p.*, e.id AS event_id
+    FROM pending_bookings p
+    JOIN events e ON LOWER(e.name) = LOWER(p.event_name)
+    ORDER BY p.created_at DESC
+    LIMIT 1;
+  `, [], (err, row) => {
+    if (err) return cb(err);
+    if (!row) return cb(new Error('Event not found'));
+    cb(null, row);
+  });
+}
 function getPendingBooking(token, cb) {
 db.get("SELECT * FROM pending_bookings WHERE token = ?", [token], cb);
 }
@@ -109,6 +123,7 @@ db.get("SELECT * FROM events WHERE name = ?", [name], cb);
 module.exports = { getAllEvents,
 purchaseTicket,
 savePendingBooking,
+getLastPendingBooking,
 getPendingBooking,
 deletePendingBooking,
 getEventByName

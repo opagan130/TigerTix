@@ -186,9 +186,149 @@ function confirmBooking(req, res) {
   });
 }
 
+async function initChat(req, res) {
+  try {
+    const events = await new Promise((resolve, reject) => {
+      clientModel.getAllEvents((err, rows) => {
+        if (err) return reject(err);
+        resolve(rows || []);
+      });
+    });
+
+    if (!events.length) {
+      return res.json({
+        reply: "Hi there! Welcome to TigerTix — your personal event assistant.\nRight now there are no events available, but check back later!"
+      });
+    }
+
+    const eventList = events.map(e =>
+      `• ${e.name} (${e.date}) — ${e.available_tickets} tickets left`
+    ).join('\n');
+
+    return res.json({
+      reply:
+        `Hi there! I'm TigerTix, your event assistant.\n\n` +
+        `Here are the events currently available:\n${eventList}\n\n` +
+        `You can say something like: "Book 2 tickets for Jazz Night".`
+    });
+  } catch (error) {
+    console.error('[initChat] Error:', error);
+    return res.status(500).json({ reply: "Sorry, I couldn't load the events right now." });
+  }
+}
+
+async function chatWithAI(req, res) {
+  const userMessage = req.body.message?.toLowerCase() || '';
+
+  // Handle greetings mid-conversation
+  if (/^(hi|hello|hey)/.test(userMessage)) {
+    return initChat(req, res);
+  }
+
+  //if they want to see the event list
+  if (/events|what('| i)s happening|show.*event|available/i.test(userMessage)) {
+  try {
+    const events = await new Promise((resolve, reject) => {
+      clientModel.getAllEvents((err, rows) => {
+        if (err) return reject(err);
+        resolve(rows || []);
+      });
+    });
+
+    if (!events.length) {
+      return res.json({
+        reply: "There are no events available right now. Check back soon!"
+      });
+    }
+
+    const eventList = events.map(e =>
+      `• ${e.name} (${e.date}) — ${e.available_tickets} tickets left`
+    ).join('\n');
+
+    return res.json({
+      reply: `Here are the current events:\n${eventList}\n\n.`
+    });
+  } catch (error) {
+    console.error('[chatWithAI] event listing error:', error);
+    return res.status(500).json({
+      reply: "Sorry, I couldn't load available events right now."
+    });
+  }
+}
+
+  // Handle booking requests
+  if (/book|reserve|ticket/.test(userMessage)) {
+    try {
+      let parsed = await parseWithLLM(userMessage);
+      if (!parsed || !parsed.event || !parsed.tickets) parsed = fallbackParse(userMessage);
+
+      if (!parsed.event || !parsed.tickets) {
+        return res.json({
+          reply: "Hmm... I couldn't quite understand that. Try saying: 'Book 1 ticket for Rock Fest'."
+        });
+      }
+
+      // Create pending booking
+      const token = uuid();
+      await new Promise((resolve, reject) =>
+        clientModel.savePendingBooking(token, parsed.event, parsed.tickets, userMessage, (err) =>
+          err ? reject(err) : resolve()
+        )
+      );
+
+      return res.json({
+        reply: `Got it! You want **${parsed.tickets} ticket(s)** for **${parsed.event}**.\nPlease confirm by saying "Yes" or "Confirm ${parsed.event}".`,
+        pending_token: token,
+      });
+    } catch (err) {
+      console.error('[chatWithAI] booking error:', err);
+      return res.status(500).json({ reply: "Something went wrong while creating your booking." });
+    }
+  }
+
+  // Handle confirmations
+  if (/confirm|yes|go ahead|yep|sure/.test(userMessage)) {
+    try {
+      const pending = await new Promise((resolve, reject) =>
+        clientModel.getLastPendingBooking((err, row) =>
+          err ? reject(err) : resolve(row)
+        )
+      );
+
+      if (!pending) {
+        return res.json({ reply: "I don't have any booking to confirm right now." });
+      }
+
+      await new Promise((resolve, reject) =>
+        clientModel.purchaseTicket(pending.event_id, pending.tickets, (err) =>
+          err ? reject(err) : resolve()
+        )
+      );
+
+      await new Promise((resolve) =>
+        clientModel.deletePendingBooking(pending.token, () => resolve())
+      );
+
+      return res.json({
+        reply: `Your booking for **${pending.event_name}** (${pending.tickets} tickets) is confirmed! Enjoy the show`
+      });
+    } catch (err) {
+      console.error('[chatWithAI] confirm error:', err);
+      return res.status(500).json({ reply: "Sorry, I couldn't complete the booking confirmation." });
+    }
+  }
+
+  // Fallback
+  return res.json({
+    reply: "I didn't catch that. You can ask me to show available events or book a ticket."
+  });
+}
+
 module.exports = { 
   getEvents,
   purchase,
   parseText,
-  confirmBooking 
+  confirmBooking,
+  initChat,
+  chatWithAI 
 };

@@ -8,6 +8,8 @@ router.post('/events/:id/purchase', clientController.purchase);
 
 router.post('/parse', clientController.parseText);
 router.post('/confirm', clientController.confirmBooking);
+router.get('/chat/init', clientController.initChat);
+router.post('/chat', clientController.chatWithAI);
 
 module.exports = router;
 
