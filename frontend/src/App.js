@@ -6,6 +6,11 @@ function App() {
   const [messages, setMessages] = useState([]); 
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const [recognizedText, setRecognizedText] = useState('');
+  const [ttsEnabled, setTtsEnabled] = useState(true);
+
+
 
   // Initialize chat (AI greets user)
   useEffect(() => {
@@ -37,12 +42,14 @@ function App() {
       });
       const data = await res.json();
       setMessages(prev => [...prev, { sender: 'bot', text: data.reply }]);
+      if (ttsEnabled && data?.reply) speak(data.reply);
     } catch (err) {
       console.error('Chat error:', err);
       setMessages(prev => [
         ...prev,
         { sender: 'bot', text: "Sorry, I couldn't process that message." },
       ]);
+      if (ttsEnabled) speak("Sorry, I couldn't process that message.");
     } finally {
       setIsLoading(false);
     }
@@ -55,6 +62,79 @@ function App() {
       handleSend();
     }
   }
+
+  function speak(text) {
+  if (!window.speechSynthesis) {
+    console.warn('Speech Synthesis not supported in this browser.');
+    return;
+  }
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = 'en-US';
+  utterance.rate = 1;     // 0.5–2 range; 1 = normal speed
+  utterance.pitch = 1;    // 0–2 range; 1 = normal pitch
+  utterance.volume = 1;   // 0–1
+  window.speechSynthesis.speak(utterance);
+}
+
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  let recognition;
+  if (SpeechRecognition) {
+    recognition = new SpeechRecognition();
+    recognition.lang = 'en-US';
+    recognition.continuous = false;
+    recognition.interimResults = true;
+    recognition.onstart = () => {
+    playBeep();
+    console.log('🎙️ Voice recognition started');
+    setIsListening(true);
+    };
+    recognition.onend = () => setIsListening(false);
+    recognition.onresult = (event) => {
+      let transcript = '';
+      for (let i = event.resultIndex; i < event.results.length; ++i) {
+        transcript += event.results[i][0].transcript;
+      }
+      setRecognizedText(transcript);
+    };
+  }
+
+  function toggleListening() {
+    if (!recognition) return alert('Speech recognition not supported.');
+    if (isListening) recognition.stop();
+    else {
+      setRecognizedText('');
+      recognition.start();
+    }
+  }
+
+  function playBeep() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const oscillator = ctx.createOscillator();
+    const gainNode = ctx.createGain();
+
+    oscillator.connect(gainNode);
+    gainNode.connect(ctx.destination);
+
+    oscillator.type = 'sine'; // could be 'square', 'sawtooth', etc.
+    oscillator.frequency.setValueAtTime(800, ctx.currentTime); // 800 Hz beep
+    gainNode.gain.setValueAtTime(0.1, ctx.currentTime); // volume
+
+    oscillator.start();
+    oscillator.stop(ctx.currentTime + 0.2); // beep for 0.2 seconds
+  } catch (err) {
+    console.warn('Beep failed:', err);
+  }
+}
+
+  useEffect(() => {
+    if (recognizedText && !isListening) {
+      setInput(recognizedText);
+      handleSend();
+      setRecognizedText('');
+    }
+  }, [recognizedText, isListening]);
+
 
   return (
     <div className="container">
@@ -111,6 +191,13 @@ function App() {
         />
         <button onClick={handleSend} disabled={isLoading}>
           Send
+        </button>
+        <button onClick={toggleListening} disabled={isLoading}>
+          {isListening ? '🛑 Stop' : '🎙️ Speak'}
+        </button>
+
+        <button onClick={() => setTtsEnabled(!ttsEnabled)}>
+        {ttsEnabled ? '🔈 TTS On' : '🔇 TTS Off'}
         </button>
       </div>
 

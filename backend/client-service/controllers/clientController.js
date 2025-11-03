@@ -324,11 +324,30 @@ async function chatWithAI(req, res) {
   });
 }
 
+async function handleVoiceInput(req, res) {
+  try {
+    const { transcript } = req.body;
+    if (!transcript || transcript.trim() === '') {
+      return res.status(400).json({ error: 'Empty voice input' });
+    }
+
+    console.log(`[Voice Input] Received: "${transcript}"`);
+
+    // Reuse existing logic from parseText — it does LLM extraction
+    req.body.text = transcript;
+    return parseText(req, res);  // Same as "Book two tickets..." etc.
+  } catch (err) {
+    console.error('Error handling voice input:', err);
+    res.status(500).json({ error: 'Voice input processing failed' });
+  }
+}
+
 module.exports = { 
   getEvents,
   purchase,
   parseText,
   confirmBooking,
   initChat,
-  chatWithAI 
+  chatWithAI,
+  handleVoiceInput 
 };
