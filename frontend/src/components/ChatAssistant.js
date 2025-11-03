@@ -194,7 +194,7 @@ export default function ChatAssistant() {
       const res = await fetch(`${API_BASE}/api/confirm`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: llmProposal.pending_token})
+        body: JSON.stringify({ event: llmProposal.event, tickets: llmProposal.tickets })
       });
       const json = await res.json();
       if (!res.ok || !json) throw new Error(json?.error || 'Booking failed');
