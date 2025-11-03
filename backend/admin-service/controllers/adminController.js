@@ -27,12 +27,19 @@ function createEvent(req, res) {
       return res.status(400).json({ error: 'total_tickets must be a non-negative integer' });
     }
 
-    adminModel.createEvent({ name, date, total_tickets: total }, (err, result) => {
+    adminModel.createEvent({ name, date, total_tickets: total }, function(err, result) {
       if (err) {
         console.error('createEvent DB error:', err);
         return res.status(500).json({ error: 'Database error' });
       }
-      res.status(201).json({ id: result.id });
+
+      const newID = result?.id || this?.lastID; 
+      if (!newID){ 
+        console.warn 
+        ('No lastID returned from DB insert');
+      }
+
+      return res.status(201).json({ id: result.id });
     });
   } catch (err) {
     console.error('createEvent error:', err);
@@ -68,8 +75,23 @@ function deleteEvent(req, res) {
     res.json({ success: true, message: `Event ${id} deleted.` });
   });
 }
+function getEvents(req, res) {
+  adminModel.getEvents((err, rows) => {
+    if (err) {
+      console.error('getEvents DB error:', err);
+      console.error(err);
+      return res.status(500).json({ error: 'Database error', details: err.message });
+    }
+    if (!rows) {
+      return res.status(404).json({ error: 'No events found' });
+    }
+    console.log('getEvents result: ', rows);
+    return res.status(200).json(rows);
+  });
+}
 
 module.exports = { 
   createEvent,
-  deleteEvent
+  deleteEvent, 
+  getEvents
  };

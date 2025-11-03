@@ -26,6 +26,11 @@ function createEvent(event, cb) {
     cb(null, { id: this.lastID });
   });
 }
+function getEvents(cb) {
+  const sql = `SELECT id, name, date, total_tickets, available_tickets, created_at FROM events ORDER BY date`;
+  db.all(sql, [], (err, rows) => cb(err, rows));
+}
+
 
 /**
  * 
