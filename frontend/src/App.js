@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import EventList from './components/eventList';
-import ChatAssistant from './components/ChatAssistant';
 
 function App() {
 
@@ -118,7 +117,6 @@ function App() {
       <hr style={{ margin: '30px 0' }} />
 
       <EventList />
-      <ChatAssistant />
     </div>
   );
 }

@@ -1,8 +1,9 @@
+
 const clientModel = require('../models/clientModel.js');
 const { v4: uuid } = require("uuid");
 const OpenAI = require("openai");
 
-// Initializes OpenAI
+//Initializes OpenAI
 const openai = process.env.OPENAI_API_KEY
   ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
   : null;
@@ -10,6 +11,16 @@ const openai = process.env.OPENAI_API_KEY
 /**
  * getEvents (Controller)
  * ------------------------------
+ * Handles GET /api/events requests.
+ * Retrieves and returns all events as JSON from the model layer.
+ *
+ * @route GET /api/events
+ * @param {Object} req - Express request object.
+ * @param {Object} res - Express response object.
+ * 
+ * Responses:
+ *   - 200 OK: Array of event objects.
+ *   - 500 Internal Server Error: If database query fails.
  */
 function getEvents(req, res) {
   clientModel.getAllEvents((err, rows) => {
@@ -24,6 +35,18 @@ function getEvents(req, res) {
 /**
  * purchase (Controller)
  * ------------------------------
+ * Handles POST /api/events/:id/purchase requests.
+ * Invokes model layer to safely decrement available_tickets.
+ *
+ * @route POST /api/events/:id/purchase
+ * @param {Object} req - Express request object (includes :id param).
+ * @param {Object} res - Express response object.
+ * 
+ * Responses:
+ *   - 200 OK: { success: true } when purchase successful.
+ *   - 400 Bad Request: Invalid ID or sold-out event.
+ *   - 404 Not Found: Event does not exist.
+ *   - 500 Internal Server Error: Unhandled database errors.
  */
 function purchase(req, res) {
   const id = parseInt(req.params.id, 10);
@@ -40,51 +63,25 @@ function purchase(req, res) {
   });
 }
 
-/**
- * fallbackParse
- * ------------------------------
- * Simple keyword-based fallback if LLM parsing fails.
- */
+//TODO: create proper header
+//In case the LLM fails
 function fallbackParse(text) {
-  if (!text) return {};
+  const events = ["Jazz Night", "Rock Fest", "Football Game", "Basketball Night", "Summer Concert"];
+  let event = events.find(e => text.toLowerCase().includes(e.toLowerCase()));
 
-  const lower = text.toLowerCase().trim();
-  const match = lower.match(/book\s+(\w+)\s+(?:ticket|tickets)\s+(?:for|to)\s+(.+)/i);
-  if (match) {
-    let num = match[1];
-    const event = match[2].replace(/[.!?]$/, '').trim();
+  // ticket extraction
+  const num = text.match(/(\d+)\s*ticket/i);
+  let tickets = num ? parseInt(num[1]) : null;
 
-    const wordsToNums = {
-      one: 1, two: 2, three: 3, four: 4, five: 5,
-      six: 6, seven: 7, eight: 8, nine: 9, ten: 10
-    };
-    const tickets = wordsToNums[num] || parseInt(num, 10) || 1;
+  // intent extraction
+  let intent = null;
+  if (/book|reserve|buy/i.test(text)) intent = "book";
 
-    return {
-      success: true,
-      intent: "book",
-      event: event.replace(/\b\w/g, c => c.toUpperCase()),
-      tickets,
-      message: `I can book ${tickets} ticket${tickets > 1 ? "s" : ""} for ${event}. Confirm?`
-    };
-  }
-
-  if (lower.includes("show events") || lower.includes("what events")) {
-    return {
-      success: true,
-      intent: "list",
-      message: "Here are the events with available tickets."
-    };
-  }
-
-  return { success: false, message: "Unable to interpret booking request." };
+  return { event, tickets, intent };
 }
 
-/**
- * parseWithLLM
- * ------------------------------
- * Attempts to interpret booking intent using an LLM (GPT-4o-mini).
- */
+//TODO: create proper header
+//AI attempts to understand user and make JSON request
 async function parseWithLLM(text) {
   if (!openai) return null;
 
@@ -115,34 +112,26 @@ User text: "${text}"
   }
 }
 
-/**
- * parseText
- * ------------------------------
- * Handles POST /api/parse.
- * Uses LLM to interpret text, falls back to regex parser if needed.
- */
+//TODO: create header
 async function parseText(req, res) {
   const text = req.body.text;
-  if (!text) {
-    return res.status(400).json({ success: false, error: "Missing text" });
-  }
 
+  // Attempt LLM parse
   let parsed = await parseWithLLM(text);
 
-  // fallback if LLM fails or returns incomplete info
+  // Fallback if LLM failed
   if (!parsed || !parsed.event || !parsed.tickets) {
     parsed = fallbackParse(text);
   }
 
   if (!parsed.event || !parsed.tickets) {
     return res.status(400).json({
-      success: false,
       message: "Unable to interpret booking request.",
       input: text
     });
   }
 
-  // Booking intent: create pending booking
+  // If intent is booking, create a pending_booking
   if (parsed.intent === "book") {
     const token = uuid();
 
@@ -155,7 +144,7 @@ async function parseText(req, res) {
       return res.json({
         ...parsed,
         pending_token: token,
-        message: `I can book ${parsed.tickets} ticket${parsed.tickets > 1 ? "s" : ""} for ${parsed.event}. Confirm?`
+        message: "Pending booking created. Please confirm."
       });
     });
   }
@@ -163,28 +152,28 @@ async function parseText(req, res) {
   return res.json(parsed);
 }
 
-/**
- * confirmBooking
- * ------------------------------
- * Confirms and completes a pending booking.
- */
+//TODO: create header
 function confirmBooking(req, res) {
   const token = req.body.token;
   const customer = req.body.customer || "Anonymous";
 
   clientModel.getPendingBooking(token, (err, pending) => {
+
     if (!pending)
       return res.status(400).json({ message: "Invalid or expired token" });
     
+    // pulls the event provided it exists
     clientModel.getEventByName(pending.event_name, (err2, event) => {
       if (!event)
         return res.status(400).json({ message: "Event not found" });
 
+      
       clientModel.purchaseTicket(event.id, pending.tickets, (err3, result) => {
         if (err3) {
           return res.status(400).json({ error: err3.message });
         }
 
+        // Remove pending booking
         clientModel.deletePendingBooking(token, () => {});
 
         res.json({
@@ -231,40 +220,43 @@ async function initChat(req, res) {
 async function chatWithAI(req, res) {
   const userMessage = req.body.message?.toLowerCase() || '';
 
+  // Handle greetings mid-conversation
   if (/^(hi|hello|hey)/.test(userMessage)) {
     return initChat(req, res);
   }
 
+  //if they want to see the event list
   if (/events|what('| i)s happening|show.*event|available/i.test(userMessage)) {
-    try {
-      const events = await new Promise((resolve, reject) => {
-        clientModel.getAllEvents((err, rows) => {
-          if (err) return reject(err);
-          resolve(rows || []);
-        });
+  try {
+    const events = await new Promise((resolve, reject) => {
+      clientModel.getAllEvents((err, rows) => {
+        if (err) return reject(err);
+        resolve(rows || []);
       });
+    });
 
-      if (!events.length) {
-        return res.json({
-          reply: "There are no events available right now. Check back soon!"
-        });
-      }
-
-      const eventList = events.map(e =>
-        `• ${e.name} (${e.date}) — ${e.available_tickets} tickets left`
-      ).join('\n');
-
+    if (!events.length) {
       return res.json({
-        reply: `Here are the current events:\n${eventList}\n\n.`
-      });
-    } catch (error) {
-      console.error('[chatWithAI] event listing error:', error);
-      return res.status(500).json({
-        reply: "Sorry, I couldn't load available events right now."
+        reply: "There are no events available right now. Check back soon!"
       });
     }
-  }
 
+    const eventList = events.map(e =>
+      `• ${e.name} (${e.date}) — ${e.available_tickets} tickets left`
+    ).join('\n');
+
+    return res.json({
+      reply: `Here are the current events:\n${eventList}\n\n.`
+    });
+  } catch (error) {
+    console.error('[chatWithAI] event listing error:', error);
+    return res.status(500).json({
+      reply: "Sorry, I couldn't load available events right now."
+    });
+  }
+}
+
+  // Handle booking requests
   if (/book|reserve|ticket/.test(userMessage)) {
     try {
       let parsed = await parseWithLLM(userMessage);
@@ -276,6 +268,7 @@ async function chatWithAI(req, res) {
         });
       }
 
+      // Create pending booking
       const token = uuid();
       await new Promise((resolve, reject) =>
         clientModel.savePendingBooking(token, parsed.event, parsed.tickets, userMessage, (err) =>
@@ -293,6 +286,7 @@ async function chatWithAI(req, res) {
     }
   }
 
+  // Handle confirmations
   if (/confirm|yes|go ahead|yep|sure/.test(userMessage)) {
     try {
       const pending = await new Promise((resolve, reject) =>
@@ -324,6 +318,7 @@ async function chatWithAI(req, res) {
     }
   }
 
+  // Fallback
   return res.json({
     reply: "I didn't catch that. You can ask me to show available events or book a ticket."
   });
