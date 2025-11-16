@@ -43,6 +43,7 @@ export default function EventList() {
     try {
       const res = await fetch(`${API_BASE}/events/${id}/purchase`, {
         method: 'POST',
+        credentials: 'include',
       });
       const json = await res.json();
 

@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from 'react';
+
 import EventList from './components/eventList';
+import RegisterForm from './components/registerForm';
+import LoginForm from './components/LoginForm';
+import LogoutButton from './components/logoutButton';
 
 function App() {
 
@@ -9,7 +13,22 @@ function App() {
   const [isListening, setIsListening] = useState(false);
   const [recognizedText, setRecognizedText] = useState('');
   const [ttsEnabled, setTtsEnabled] = useState(true);
+  const [currentUser, setCurrentUser] = useState(null);
 
+//Login Info (and Logout)
+  function handleLogin(email) {
+  setCurrentUser(email);
+}
+
+function handleRegistered(email) {
+    // auto login after registering
+    setCurrentUser(email);
+  }
+
+function handleLogout() {
+  setCurrentUser(null);
+  setMessages([]); 
+}
 
 
   // Initialize chat (AI greets user)
@@ -37,6 +56,7 @@ function App() {
     try {
       const res = await fetch('http://localhost:6001/api/chat', {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: input }),
       });
@@ -136,10 +156,24 @@ function App() {
   }, [recognizedText, isListening]);
 
 
+  //Login Page
+if (!currentUser) {
+    return (
+      <div style={{ padding: '20px' }}>
+        <h2>TigerTix Login</h2>
+
+        <LoginForm onLogin={handleLogin} />
+        <RegisterForm onRegistered={handleRegistered} />
+      </div>
+    );
+  }
+
   return (
+    
     <div className="container">
       <h1>TigerTix </h1>
       <p>Browse events and buy tickets.</p>
+      <LogoutButton onLogout={handleLogout} />
 
       
       <div
