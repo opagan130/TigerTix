@@ -20,9 +20,10 @@ app.get('/health', (req, res) => res.json({ status: 'admin ok' }));
 
 // Start the server
 const PORT = process.env.PORT || 5001;
-const server = app.listen(PORT, () =>
-  console.log(`Admin service listening on ${PORT}`)
-);
+if (process.env.NODE_ENV !== "test") {
+  app.listen(PORT, () =>
+    console.log(`Admin service listening on ${PORT}`)
+  );
+}
 
-// ✅ Export the server instance for tests
-module.exports = server;
+module.exports = app;

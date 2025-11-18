@@ -20,4 +20,10 @@ app.use('/auth', authRoutes);
 app.get('/health', (req, res) => res.json({ status: 'client ok' }));
 
 const PORT = process.env.PORT || 6001;
-app.listen(PORT, () => console.log(`Client service listening on ${PORT}`));
+if (process.env.NODE_ENV !== "test") {
+  app.listen(PORT, () =>
+    console.log(`Client service listening on ${PORT}`)
+  );
+}
+
+module.exports = app;
