@@ -1,10 +1,10 @@
 
+require('dotenv').config();
 const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const clientRoutes = require('./routes/clientRoutes');
 const authRoutes = require('./routes/authRoutes');
-require('dotenv').config();
 const cookieParser = require('cookie-parser');
 
 

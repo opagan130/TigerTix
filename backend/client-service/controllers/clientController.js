@@ -1,12 +1,10 @@
 
 const clientModel = require('../models/clientModel.js');
 const { v4: uuid } = require("uuid");
-const OpenAI = require("openai");
 
-//Initializes OpenAI
-const openai = process.env.OPENAI_API_KEY
-  ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
-  : null;
+const { Ollama } = require("ollama");
+const ollama = new Ollama();
+
 
 /**
  * getEvents (Controller)
@@ -66,7 +64,7 @@ function purchase(req, res) {
 //TODO: create proper header
 //In case the LLM fails
 function fallbackParse(text) {
-  const events = ["Jazz Night", "Rock Fest", "Football Game", "Basketball Night", "Summer Concert"];
+  const events = ["Jazz Night", "Rock Fest", "Fall Concert", "Basketball Night", "Summer Concert"];
   let event = events.find(e => text.toLowerCase().includes(e.toLowerCase()));
 
   // ticket extraction
@@ -83,28 +81,50 @@ function fallbackParse(text) {
 //TODO: create proper header
 //AI attempts to understand user and make JSON request
 async function parseWithLLM(text) {
-  if (!openai) return null;
 
   try {
-    const prompt = `
-Extract the event booking intent from this text.
-Return STRICT JSON only:
-{ "event": string|null, "tickets": number|null, "intent": "book"|null }
+    const SYSTEM_PROMPT = `
+You are a natural-language parser used for ticket booking.
 
-User text: "${text}"
-    `;
+You MUST return ONLY a pure JSON object.
+No markdown. No explanations. No extra text.
 
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+STRICT FORMAT:
+{
+  "intent": "book" | "show_events" | "greet" | "unknown",
+  "event": string | null,
+  "tickets": number | null
+}
+
+Rules:
+- If user says “book X tickets for EVENT”, set intent="book".
+- Detect ticket count (default = 1).
+- Detect event name as text after the word "for".
+- If user greets, intent="greet".
+- If user asks for available events, intent="show_events".
+- Otherwise intent="unknown".
+`;
+
+    const response = await ollama.chat({
+      model: "llama3.2",
       messages: [
-        { role: "system", content: "Output only valid JSON." },
-        { role: "user", content: prompt }
+        { role: "system", content: SYSTEM_PROMPT },
+        { role: "user", content: text }
       ]
     });
 
-    const raw = response.choices[0].message.content;
-    const json = JSON.parse(raw.match(/\{[\s\S]*\}/)[0]);
-    return json;
+    const raw = response.message.content.trim();
+    
+
+    // Extract JSON from the output
+    const start = raw.indexOf("{");
+    const end = raw.lastIndexOf("}") + 1;
+    const jsonText = raw.substring(start, end);
+
+    const parsed = JSON.parse(jsonText);
+    
+
+    return parsed;
 
   } catch (err) {
     console.error("LLM parsing failed:", err);
