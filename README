@@ -1,7 +1,148 @@
-# TigerTix
-TigerTix is a ticket-management web application designed to simulate a real-world microservices architecture. 
-In Sprint 1, the monolithic starter app was refactored into two independents Node.js/Express microservices — Admin Service and Client Service — connected through a shared SQLite database, with a React.js frontend consuming live event data. The goal of this sprint was to demonstrate microservice separation, persistent data storage, frontend integration, basic accessibility, and safe concurrent ticket purchases. 
+# CPSC 3720 - Software Engineering - Brinkley 
+# Team Members: Olivia Pagan, Ford Scott
 
-## Prereqs
-- Node.js (>= 16)
-- npm
+# Project Overview: 
+TigerTix is a microservice-based event ticketing system that allows users to: 
+- Browse upcoming events 
+- Register and log in
+- Book tickets via UI or AI-powered natural language booking 
+- Confirm ticket purchases through a secure flow
+- Interact with a chat-based LLM assistant for event discovery and booking 
+- Use voice input for conversational ticket booking 
+The platform is designed for reliability, modularity, automated testing, and ease of deployment. 
+It includes separate Admin and Client services, a shared SQLite database, and a React frontend. 
+
+# Tech Stack 
+Frontend
+- React 
+- React Router 
+- Fetch API
+- React Testing Library + Jest 
+- jsdom testing environment 
+Backend
+- Node.js + Express 
+- Microservices architecture 
+    - Admin Service (event creation, deletion)
+    - Client Service (purchase, chat, LLM flow, confirmation)
+- SQLite (in production and development) 
+- In-memory SQLite for automated testing
+- Supertest + Jest for regression tests
+AI/LLM Integration
+- OpenAI API 
+- used to parse natural-language ticket-booking intents
+- Automatic fallback parser when LLM unavailable 
+
+# Architecture Summary
+TigerTix is built as three main components, coordinated through a shared database: 
+1. Admin Service
+- creates events 
+- deletes events 
+- retrieves events 
+- runs on port 5001
+- data flow: Frontend (admin panel) -> Admin service -> SQLite DB
+2. Client Service
+- retrieves events 
+- processes ticket purchases
+- handles pending bookings 
+- manages LLM parse + confirmation flow 
+- handles voice input 
+- runs on port 6001 
+- data flow: 
+    - Frontend <-> Client Service <-> SQLite DB
+    - Frontend <-> Client Service <-> OpenAI API
+3. Frontend
+- user login/registration UI 
+- event browsing 
+- ticket purchasing
+- LLM chat window 
+- voice-enabled ticket booking
+- communicates only with the backend services never directly with SQLite 
+Database Layer: 
+- Tables: 
+    - events 
+    - pending_bookings 
+- each service loads shared DB utilities so they behave like a unified system
+
+# Installation and Setup Instructions 
+1. Clone the repository: 
+git clone https://github.com/your-repo/TigerTix.git
+cd TigerTix
+2. Backend Setup: 
+- install admin-service
+cd backend/admin-service
+npm install
+- install client-service
+cd ../client-service
+npm install
+- initialize the shared SQLite database
+cd ../shared-db
+node init.js
+3. Frontend Setup: 
+cd ../../frontend
+npm install
+
+Environment Variables Setup: 
+- Backend (client-service/.env)
+    - Create:
+    OPENAI_API_KEY=your_api_key_here
+    PORT=6001
+    NODE_ENV=development
+    - If no key is provided, the system gracefully falls back to the rule-based parser.
+- Frontend (.env)
+    REACT_APP_CLIENT_API=http://localhost:6001
+    REACT_APP_ADMIN_API=http://localhost:5001
+
+Running the Application: 
+- Admin service: 
+cd backend/admin-service
+npm start
+- Client service: 
+cd backend/client-service
+npm start
+- Frontend: 
+cd frontend
+npm start
+- the app will open at http://localhost:3000
+
+How to Run Regression Tests: 
+- Backend Tests: All backend tests use Jest + Supertest and in-memory SQLite.
+Run:
+cd backend
+npm test
+Tests included:
+- Model tests (Admin & Client)
+- purchaseTicket logic
+- confirmBooking logic
+- Authentication middleware
+- Mocked LLM parse tests
+
+- Frontend Tests: Frontend uses React Testing Library + Jest.
+Run:
+cd frontend
+npm test
+Tests included:
+- uiHelpers.js utility functions
+- Basic rendering tests
+- Skipped CRA boilerplate test to avoid false failures
+
+# Team and Roles
+Coding Team
+- Olivia Pagan: Scrum Master
+- Ford Scott: Project Manager
+Instructor: Dr. Julian Brinkley, Clemson University 
+Teaching Assistants: 
+- Colt Doster
+- Atik Enam
+
+# License: 
+This project is distributed under the MIT License, a widely used open-source license that allows anyone to freely use, modify, distribute, and build upon this software—as long as the original copyright notice and permission notice are included.
+
+MIT License
+
+Copyright (c) 2024 TigerTix Team
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:                         
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.                             
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
