@@ -31,7 +31,12 @@ function login(req, res) {
     const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, { expiresIn: JWT_EXPIRY });
 
     // Store as HTTP-only cookie, for 30 mins
-    res.cookie('token', token, { httpOnly: true, maxAge: 30 * 60 * 1000 });
+    res.cookie('token', token, { httpOnly: true, 
+      maxAge: 30 * 60 * 1000,
+      secure: process.env.NODE_ENV === 'production',    // required with SameSite=None
+      sameSite: process.env.NODE_ENV === 'production'
+        ? 'none'                                        // allow cross-site (Vercel → Render)
+        : 'lax',  });
     return res.json({ success: true, token, email: user.email });
   });
 }
