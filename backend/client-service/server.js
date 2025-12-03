@@ -17,6 +17,20 @@ app.use(cors({
   credentials: true
 }));
 
+const corsOptions = {
+  origin(origin, callback) {
+    // Allow non-browser clients or same-origin (no Origin header)
+    if (!origin) return callback(null, true);
+
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    console.log('[CORS] Blocked origin:', origin);
+    return callback(new Error('Not allowed by CORS'));
+  },
+  credentials: true,
+};
+
 app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
 
