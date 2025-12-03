@@ -42,7 +42,7 @@ export default function EventList() {
   const buyTicket = async (id, name) => {
     setMessage('');
     try {
-      const res = await fetch(`${API_BASE}/events/${id}/purchase`, {
+      const res = await fetch(`${API_BASE}/api/events/${id}/purchase`, {
         method: 'POST',
         credentials: 'include',
       });
