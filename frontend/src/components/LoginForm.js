@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import API_BASE from '../APIconfig.js';
 
 function LoginForm({ onLogin }) {
   const [email, setEmail] = useState('');
@@ -10,7 +11,7 @@ function LoginForm({ onLogin }) {
     setError('');
 
     try {
-      const res = await fetch('http://localhost:6001/auth/login', {
+      const res = await fetch(`${API_BASE}/auth/login`, {
         method: 'POST',
         credentials: 'include', // required for cookies
         headers: { 'Content-Type': 'application/json' },

@@ -1,14 +1,15 @@
 import React, { useEffect, useState } from 'react';
+import API_BASE from 'APIconfig';
 
 export default function EventList() {
   const [events, setEvents] = useState([]);
   const [message, setMessage] = useState('');
 
-  const API_BASE = 'http://localhost:6001/api';
+  //const API_BASE = `${API_BASE}/api`;
 
   // Pulls events from backend
   const fetchEvents = () => {
-    fetch(`${API_BASE}/events`)
+    fetch(`${API_BASE}/api/events`)
       .then((res) => res.json())
       .then((data) => {
         setEvents(data);

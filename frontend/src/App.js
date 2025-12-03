@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import API_BASE from 'APIconfig';
 
 import EventList from './components/eventList';
 import RegisterForm from './components/registerForm';
@@ -35,7 +36,7 @@ function handleLogout() {
   useEffect(() => {
     async function initChat() {
       try {
-        const res = await fetch('http://localhost:6001/api/chat/init');
+        const res = await fetch(`${API_BASE}/api/chat/init`);
         const data = await res.json();
         setMessages([{ sender: 'bot', text: data.reply }]);
       } catch (err) {
@@ -54,7 +55,7 @@ function handleLogout() {
     setIsLoading(true);
 
     try {
-      const res = await fetch('http://localhost:6001/api/chat', {
+      const res = await fetch(`${API_BASE}/api/chat`, {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
