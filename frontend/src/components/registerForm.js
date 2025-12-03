@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import API_BASE from '../APIconfig.js';
 
 function RegisterForm({ onRegistered }) {
   const [email, setEmail] = useState('');
@@ -10,7 +11,7 @@ function RegisterForm({ onRegistered }) {
     setError('');
 
     try {
-      const res = await fetch('http://localhost:6001/auth/register', {
+      const res = await fetch(`${API_BASE}/auth/register`, {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },

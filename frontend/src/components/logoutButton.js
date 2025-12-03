@@ -1,8 +1,9 @@
 import React from 'react';
+import API_BASE from '../APIconfig.js';
 
 function LogoutButton({ onLogout }) {
   async function handleLogout() {
-    await fetch('http://localhost:6001/auth/logout', {
+    await fetch(`${API_BASE}/auth/logout`, {
       method: 'POST',
       credentials: 'include',
     });
