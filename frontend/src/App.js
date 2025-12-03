@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import API_BASE from 'APIconfig';
+import API_BASE from './APIconfig';
 
 import EventList from './components/eventList';
 import RegisterForm from './components/registerForm';

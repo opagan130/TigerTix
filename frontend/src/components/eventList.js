@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import API_BASE from 'APIconfig';
+import API_BASE from '../APIconfig';
 
 export default function EventList() {
   const [events, setEvents] = useState([]);
