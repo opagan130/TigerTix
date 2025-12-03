@@ -12,10 +12,14 @@ const app = express();
 app.use(cors({
   origin: [
     'http://localhost:3000',
-    'https://tiger-afg8n342k-opagan130s-projects.vercel.app/'
+    'https://tiger-afg8n342k-opagan130s-projects.vercel.app'
   ],
   credentials: true
 }));
+
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
+
 app.use(express.json());
 app.use(cookieParser());
 
