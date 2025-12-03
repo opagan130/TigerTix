@@ -9,13 +9,19 @@ const cookieParser = require('cookie-parser');
 
 
 const app = express();
-app.use(cors({
+allowedOrigins = [
+  'http://localhost:3000',
+  'https://tiger-afg8n342k-opagan130s-projects.vercel.app'
+];
+
+/*app.use(cors({
   origin: [
     'http://localhost:3000',
     'https://tiger-afg8n342k-opagan130s-projects.vercel.app'
   ],
   credentials: true
 }));
+*/
 
 const corsOptions = {
   origin(origin, callback) {
